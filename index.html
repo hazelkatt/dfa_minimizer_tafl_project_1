@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DFA Minimizer Visualizer</title>
+
+  <script src="https://unpkg.com/vis-network@9.1.6/standalone/umd/vis-network.min.js"></script>
+  <script>if(typeof vis==='undefined')document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.6/vis-network.min.js"><\/script>');</script>
+  <script>if(typeof vis==='undefined')document.write('<script src="https://cdn.jsdelivr.net/npm/vis-network@9.1.6/standalone/umd/vis-network.min.js"><\/script>');</script>
+
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <div class="hero">
+    <div class="hero-orb hero-orb-1"></div>
+    <div class="hero-orb hero-orb-2"></div>
+    <div class="hero-orb hero-orb-3"></div>
+    <div class="hero-orb hero-orb-4"></div>
+    <div class="hero-inner">
+      <div class="hero-tag">Theory of Automata & Formal Languages</div>
+      <h1>DFA Minimizer<br /><span>Visualizer</span></h1>
+    </div>
+  </div>
+
+  <div class="theory-section">
+    <div class="theory-card">
+      <div class="theory-header">
+        <div>
+          <h2>The Theory Behind DFA Minimization</h2>
+          <p>Core concepts that power the algorithm</p>
+        </div>
+        <div class="theory-tabs">
+          <button class="theory-tab active" onclick="selectTheory(0)">Foundation</button>
+          <button class="theory-tab" onclick="selectTheory(1)">Process</button>
+          <button class="theory-tab" onclick="selectTheory(2)">Cleanup</button>
+          <button class="theory-tab" onclick="selectTheory(3)">Result</button>
+        </div>
+      </div>
+      <div class="theory-content" id="theory-content"></div>
+      <div class="theory-dots">
+        <button class="theory-dot active" onclick="selectTheory(0)"></button>
+        <button class="theory-dot" onclick="selectTheory(1)"></button>
+        <button class="theory-dot" onclick="selectTheory(2)"></button>
+        <button class="theory-dot" onclick="selectTheory(3)"></button>
+      </div>
+    </div>
+  </div>
+
+  <div class="container">
+
+    <div class="nav">
+      <button class="nav-btn active" data-tab="home">Home</button>
+      <button class="nav-btn" data-tab="input">Define DFA</button>
+      <button class="nav-btn disabled" data-tab="steps">Steps <span class="badge">0</span></button>
+      <button class="nav-btn disabled" data-tab="result">Result</button>
+    </div>
+
+    <div id="panel-home" class="tab-panel visible" style="display:block;">
+      <div class="home-grid">
+        <div class="feature-card">
+          <div class="feature-num">01</div>
+          <div class="feature-title">Define Your DFA</div>
+          <div class="feature-desc">Enter states, alphabet, transitions, and specify start and final states. Or load a preset example to get started quickly.</div>
+        </div>
+        <div class="feature-card">
+          <div class="feature-num">02</div>
+          <div class="feature-title">Watch It Minimize</div>
+          <div class="feature-desc">Step through Hopcroft's algorithm. See partitions form and refine in real-time with color-coded equivalence classes on an interactive graph.</div>
+        </div>
+        <div class="feature-card">
+          <div class="feature-num">03</div>
+          <div class="feature-title">Compare Results</div>
+          <div class="feature-desc">View original and minimized DFAs side-by-side with transition tables, state mappings, and a summary of eliminated states.</div>
+        </div>
+      </div>
+      <div class="cta-section">
+        <button class="cta-btn" onclick="switchTab('input')">Get Started</button>
+      </div>
+    </div>
+
+    <div id="panel-input" class="tab-panel" style="display:none;">
+      <div class="section-label">Load a Preset</div>
+      <div class="preset-grid">
+        <div class="preset-card" onclick="loadPreset('ex1')">
+          <div class="preset-card-name">Classic 5-State</div>
+          <div class="preset-card-info">5 states / {0,1}</div>
+        </div>
+        <div class="preset-card" onclick="loadPreset('ex2')">
+          <div class="preset-card-name">Simple 3-State</div>
+          <div class="preset-card-info">3 states / {a,b}</div>
+        </div>
+        <div class="preset-card" onclick="loadPreset('ex3')">
+          <div class="preset-card-name">Unreachable States</div>
+          <div class="preset-card-info">5 states / {0,1}</div>
+        </div>
+      </div>
+      <div class="divider"></div>
+      <div class="section-label">Or Define Your Own</div>
+      <div class="form-grid">
+        <div>
+          <label class="field-label">States <span class="field-hint">(comma separated)</span></label>
+          <input type="text" id="input-states" placeholder="q0,q1,q2,q3" />
+        </div>
+        <div>
+          <label class="field-label">Alphabet <span class="field-hint">(comma separated)</span></label>
+          <input type="text" id="input-alphabet" placeholder="0,1" />
+        </div>
+        <div>
+          <label class="field-label">Start State</label>
+          <input type="text" id="input-start" placeholder="q0" />
+        </div>
+        <div>
+          <label class="field-label">Final States <span class="field-hint">(comma separated)</span></label>
+          <input type="text" id="input-final" placeholder="q2,q4" />
+        </div>
+      </div>
+      <div style="margin-top: 14px;">
+        <label class="field-label">Transitions <span class="field-hint">(one per line: state,symbol,next)</span></label>
+        <textarea id="input-transitions" rows="8" placeholder="q0,0,q1&#10;q0,1,q2&#10;..."></textarea>
+      </div>
+      <div id="error-box" class="error-box"></div>
+      <div style="margin-top: 18px;">
+        <button class="btn btn-primary" onclick="handleMinimize()">Minimize DFA</button>
+      </div>
+      <div class="preview">
+        <div class="divider"></div>
+        <div class="section-label">Original DFA Preview</div>
+        <div class="two-col">
+          <div>
+            <div class="graph-label" style="color:#4299e1">State Diagram</div>
+            <div id="preview-graph" class="graph-box"></div>
+          </div>
+          <div>
+            <div class="graph-label" style="color:#9f7aea">Transition Table</div>
+            <div id="preview-table" class="table-wrap"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="panel-steps" class="tab-panel" style="display:none;">
+      <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
+      <div class="steps-layout">
+        <div>
+          <div class="section-label">Algorithm Trace</div>
+          <div id="steps-list"></div>
+          <div class="step-nav">
+            <button class="btn btn-outline btn-sm" onclick="prevStep()">Prev</button>
+            <button class="btn btn-outline btn-sm" onclick="nextStep()">Next</button>
+            <div class="spacer"></div>
+            <button class="btn btn-primary btn-sm" onclick="switchTab('result')">View Result</button>
+          </div>
+        </div>
+        <div class="sticky-graph">
+          <div class="graph-label" id="steps-graph-label" style="color:#9f7aea">Partition View</div>
+          <div id="steps-graph" class="graph-box" style="height:400px;"></div>
+          <div class="graph-hint">Same-colored nodes = same equivalence class. Drag nodes to rearrange.</div>
+        </div>
+      </div>
+    </div>
+
+    <div id="panel-result" class="tab-panel" style="display:none;">
+      <div class="result-grid">
+        <div class="result-card result-card-orig">
+          <div class="section-label" style="color:#e8646a">Original DFA / <span id="orig-count">0</span> states</div>
+          <div class="graph-label" style="color:#e8646a">Original</div>
+          <div id="orig-graph" class="graph-box"></div>
+          <div id="orig-table" class="table-wrap"></div>
+        </div>
+        <div class="result-card result-card-min">
+          <div class="section-label" style="color:#38b2ac">Minimized DFA / <span id="min-count">0</span> states</div>
+          <div class="graph-label" style="color:#38b2ac">Minimized</div>
+          <div id="min-graph" class="graph-box"></div>
+          <div id="min-table" class="table-wrap"></div>
+          <div class="section-label" style="margin-top:16px;">State Mapping</div>
+          <div id="state-mapping" class="mapping-box"></div>
+          <div id="summary-text" class="summary-box"></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script src="minimizer.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
