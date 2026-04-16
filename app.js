@@ -11,13 +11,13 @@ var PRESETS = {
 
 var THEORY = [
   { tag: "Foundation", title: "State Equivalence", color: "#e8646a",
-    text: "Two states are considered equivalent if, for every possible input, they lead to the same outcome — either both accept or both reject. Since their behavior is indistinguishable, these states can be safely merged into one. This forms the foundation of reducing redundancy in automata." },
-  { tag: "Process", title: "Partition Refinement", color: "#9f7aea",
-    text: "The process works by grouping states into partitions based on their behavior. Initially, states are separated into accepting and non-accepting categories. These groups are then repeatedly refined by analyzing how each state transitions under different inputs. If two states respond differently, they are separated; if not, they remain grouped." },
+    text: "Two states are considered equivalent if, for every possible input, they lead to the same outcome — either both accept or both reject. The Myhill-Nerode theorem formalizes this: if no string can distinguish two states, they are equivalent and can be safely merged into one." },
+  { tag: "Process", title: "Table Filling Method", color: "#9f7aea",
+    text: "The Table Filling method systematically identifies distinguishable state pairs. First, all pairs where one state is final and the other is non-final are marked. Then, for each unmarked pair (p, q), we check: does any input symbol lead them to a pair already marked as distinguishable? If yes, (p, q) is marked too. This repeats until no new marks can be made." },
   { tag: "Cleanup", title: "Unreachable State Removal", color: "#38b2ac",
-    text: "Another important aspect is the removal of unreachable states — those that are never encountered during execution from the start state. Since they have no impact on the accepted language, eliminating them further simplifies the automaton before the main minimization begins." },
+    text: "Before applying the table filling method, unreachable states are removed — those that are never encountered during execution from the start state. Since they have no impact on the accepted language, eliminating them simplifies the automaton before the main minimization begins." },
   { tag: "Result", title: "The Minimal DFA", color: "#4299e1",
-    text: "The end result is a minimal DFA, which is both efficient and unique (up to renaming of states). It represents the exact same language as the original DFA, but with the fewest states required. No further reduction is possible without changing the language recognized." }
+    text: "Pairs that remain unmarked at the end are equivalent — these states are merged. The result is a minimal DFA, which is both efficient and unique (up to renaming of states). It recognizes the exact same language as the original but with the fewest states required." }
 ];
 
 var THEORY_COLORS_NEXT = ["#9f7aea", "#38b2ac", "#4299e1", "#e8646a"];

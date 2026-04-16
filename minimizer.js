@@ -1,9 +1,6 @@
-//dfa minimization algorithm
-
 function minimizeDFA(states, alphabet, transitions, startState, finalStates) {
   var steps = [];
 
-//Phase 1: Remove unreachable states via BFS
   var reachable = {};
   reachable[startState] = true;
   var queue = [startState];
@@ -29,86 +26,194 @@ function minimizeDFA(states, alphabet, transitions, startState, finalStates) {
     type: "unreachable"
   });
 
-//Phase 2: Initial partition
-  var P = [];
-  if (rFinal.length > 0) P.push(rFinal.slice());
-  if (rNonFinal.length > 0) P.push(rNonFinal.slice());
+  function pairKey(a, b) {
+    return a < b ? a + "|" + b : b + "|" + a;
+  }
+
+  var marked = {};     
+  var allPairs = [];
+
+  for (var i = 0; i < rStates.length; i++) {
+    for (var j = i + 1; j < rStates.length; j++) {
+      allPairs.push([rStates[i], rStates[j]]);
+    }
+  }
 
   steps.push({
-    title: "Step 1 — Initial Partition",
-    description: "Separate into Final {" + rFinal.join(", ") + "} and Non-final {" + rNonFinal.join(", ") + "}.",
-    partitions: P.map(function (p) { return p.slice(); }),
+    title: "Step 1 — Build State Pair Table",
+    description: "Create a triangular table for all " + allPairs.length + " state pairs: " +
+      allPairs.map(function (p) { return "(" + p[0] + "," + p[1] + ")"; }).join(", ") +
+      ". All pairs start as unmarked (potentially equivalent).",
+    partitions: [rFinal, rNonFinal].filter(function (p) { return p.length > 0; }),
     type: "partition"
   });
 
-//Phase 3: Iterative refinement
-  var iteration = 2;
+  var basePairs = [];
+
+  for (var i = 0; i < allPairs.length; i++) {
+    var p = allPairs[i][0];
+    var q = allPairs[i][1];
+    var pIsFinal = finalStates.indexOf(p) !== -1;
+    var qIsFinal = finalStates.indexOf(q) !== -1;
+
+    if (pIsFinal !== qIsFinal) {
+      marked[pairKey(p, q)] = true;
+      basePairs.push("(" + p + "," + q + ")");
+    }
+  }
+
+  steps.push({
+    title: "Step 2 — Mark Base Pairs",
+    description: "Mark all pairs where one state is final and the other is non-final as distinguishable: " +
+      (basePairs.length > 0 ? basePairs.join(", ") : "none") + ".",
+    partitions: [rFinal, rNonFinal].filter(function (p) { return p.length > 0; }),
+    type: "refine"
+  });
+
+  var iteration = 3;
   var changed = true;
+
   while (changed) {
     changed = false;
-    var newP = [];
-    for (var g = 0; g < P.length; g++) {
-      var group = P[g];
-      if (group.length <= 1) { newP.push(group); continue; }
-      var subGroups = {};
-      for (var s = 0; s < group.length; s++) {
-        var state = group[s];
-        var sigParts = [];
-        for (var a = 0; a < alphabet.length; a++) {
-          var target = transitions[state + "," + alphabet[a]] || "DEAD";
-          var pIdx = -1;
-          for (var pi = 0; pi < P.length; pi++) {
-            if (P[pi].indexOf(target) !== -1) { pIdx = pi; break; }
-          }
-          sigParts.push(pIdx);
+    var newlyMarked = [];
+
+    for (var i = 0; i < allPairs.length; i++) {
+      var p = allPairs[i][0];
+      var q = allPairs[i][1];
+      var pk = pairKey(p, q);
+
+      if (marked[pk]) continue; 
+
+      for (var a = 0; a < alphabet.length; a++) {
+        var sym = alphabet[a];
+        var pNext = transitions[p + "," + sym];
+        var qNext = transitions[q + "," + sym];
+
+        if ((!pNext && qNext) || (pNext && !qNext)) {
+          marked[pk] = true;
+          newlyMarked.push("(" + p + "," + q + ") via '" + sym + "'");
+          changed = true;
+          break;
         }
-        var sig = sigParts.join(",");
-        if (!subGroups[sig]) subGroups[sig] = [];
-        subGroups[sig].push(state);
+
+        if (pNext === qNext) continue;
+
+        if (pNext && qNext && marked[pairKey(pNext, qNext)]) {
+          marked[pk] = true;
+          newlyMarked.push("(" + p + "," + q + ") via '" + sym + "' → (" + pNext + "," + qNext + ")");
+          changed = true;
+          break;
+        }
       }
-      var splits = Object.values(subGroups);
-      if (splits.length > 1) changed = true;
-      for (var i = 0; i < splits.length; i++) newP.push(splits[i]);
     }
-    if (changed) {
-      P = newP;
+
+    if (newlyMarked.length > 0) {
       steps.push({
-        title: "Step " + iteration + " — Refinement",
-        description: "Split by transition behavior: " + P.map(function (g) { return "{" + g.join(", ") + "}"; }).join(", "),
-        partitions: P.map(function (p) { return p.slice(); }),
+        title: "Step " + iteration + " — Iterative Marking",
+        description: "Check unmarked pairs — if their transitions lead to a marked pair, mark them. Newly marked: " +
+          newlyMarked.join(", ") + ".",
+        partitions: buildPartitionsFromTable(rStates, marked, pairKey),
         type: "refine"
       });
       iteration++;
     }
   }
+
+  var equivalentPairs = [];
+  for (var i = 0; i < allPairs.length; i++) {
+    if (!marked[pairKey(allPairs[i][0], allPairs[i][1])]) {
+      equivalentPairs.push("(" + allPairs[i][0] + "," + allPairs[i][1] + ")");
+    }
+  }
+
+  var finalPartitions = buildPartitionsFromTable(rStates, marked, pairKey);
+
   steps.push({
-    title: "Step " + iteration + " — Converged",
-    description: "No further splits possible. Algorithm complete.",
-    partitions: P.map(function (p) { return p.slice(); }),
+    title: "Step " + iteration + " — Table Complete",
+    description: "No more pairs can be marked. " +
+      (equivalentPairs.length > 0
+        ? "Equivalent (unmarked) pairs: " + equivalentPairs.join(", ") + ". These states can be merged."
+        : "All pairs are distinguishable — the DFA is already minimal."),
+    partitions: finalPartitions,
     type: "done"
   });
 
-//Build minimized DFA
-  var minStates = P.map(function (group, i) {
-    return { id: "M" + i, label: group.length === 1 ? group[0] : "{" + group.join(",") + "}", members: group };
+  var minStates = finalPartitions.map(function (group, i) {
+    return {
+      id: "M" + i,
+      label: group.length === 1 ? group[0] : "{" + group.join(",") + "}",
+      members: group
+    };
   });
+
   var minTransitions = {};
   var minStart = null;
   var minFinal = [];
+
   for (var i = 0; i < minStates.length; i++) {
     if (minStates[i].members.indexOf(startState) !== -1) minStart = minStates[i].id;
     for (var j = 0; j < minStates[i].members.length; j++) {
-      if (finalStates.indexOf(minStates[i].members[j]) !== -1) { minFinal.push(minStates[i].id); break; }
+      if (finalStates.indexOf(minStates[i].members[j]) !== -1) {
+        minFinal.push(minStates[i].id);
+        break;
+      }
     }
     var rep = minStates[i].members[0];
     for (var a = 0; a < alphabet.length; a++) {
       var t = transitions[rep + "," + alphabet[a]];
       if (t) {
         for (var k = 0; k < minStates.length; k++) {
-          if (minStates[k].members.indexOf(t) !== -1) { minTransitions[minStates[i].id + "," + alphabet[a]] = minStates[k].id; break; }
+          if (minStates[k].members.indexOf(t) !== -1) {
+            minTransitions[minStates[i].id + "," + alphabet[a]] = minStates[k].id;
+            break;
+          }
         }
       }
     }
   }
-  return { steps: steps, minimized: { states: minStates, transitions: minTransitions, startState: minStart, finalStates: minFinal, alphabet: alphabet } };
+
+  return {
+    steps: steps,
+    minimized: {
+      states: minStates,
+      transitions: minTransitions,
+      startState: minStart,
+      finalStates: minFinal,
+      alphabet: alphabet
+    }
+  };
+}
+
+function buildPartitionsFromTable(states, marked, pairKey) {
+  var parent = {};
+  for (var i = 0; i < states.length; i++) {
+    parent[states[i]] = states[i];
+  }
+
+  function find(x) {
+    while (parent[x] !== x) { parent[x] = parent[parent[x]]; x = parent[x]; }
+    return x;
+  }
+
+  function union(a, b) {
+    var ra = find(a), rb = find(b);
+    if (ra !== rb) parent[rb] = ra;
+  }
+
+  for (var i = 0; i < states.length; i++) {
+    for (var j = i + 1; j < states.length; j++) {
+      if (!marked[pairKey(states[i], states[j])]) {
+        union(states[i], states[j]);
+      }
+    }
+  }
+
+  var groups = {};
+  for (var i = 0; i < states.length; i++) {
+    var rep = find(states[i]);
+    if (!groups[rep]) groups[rep] = [];
+    groups[rep].push(states[i]);
+  }
+
+  return Object.values(groups);
 }
