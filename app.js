@@ -1,23 +1,37 @@
-var COLORS = ["#e8646a","#38b2ac","#ed8936","#9f7aea","#48bb78","#ed64a6","#4299e1","#ecc94b","#fc8181","#63b3ed"];
+var COLORS = ["#e8646a", "#38b2ac", "#ed8936", "#9f7aea", "#48bb78", "#ed64a6", "#4299e1", "#ecc94b", "#fc8181", "#63b3ed"];
 
 var PRESETS = {
-  ex1: { name: "Classic 5-State", states: "A,B,C,D,E", alphabet: "0,1", start: "A", final: "C,E",
-    trans: "A,0,B\nA,1,C\nB,0,D\nB,1,E\nC,0,B\nC,1,C\nD,0,D\nD,1,E\nE,0,B\nE,1,C" },
-  ex2: { name: "Simple 3-State", states: "q0,q1,q2", alphabet: "a,b", start: "q0", final: "q2",
-    trans: "q0,a,q1\nq0,b,q0\nq1,a,q2\nq1,b,q0\nq2,a,q2\nq2,b,q2" },
-  ex3: { name: "Unreachable States", states: "S0,S1,S2,S3,S4", alphabet: "0,1", start: "S0", final: "S2,S4",
-    trans: "S0,0,S1\nS0,1,S2\nS1,0,S2\nS1,1,S0\nS2,0,S2\nS2,1,S2\nS3,0,S4\nS3,1,S0\nS4,0,S4\nS4,1,S4" }
+  ex1: {
+    name: "Classic 5-State", states: "A,B,C,D,E", alphabet: "0,1", start: "A", final: "C,E",
+    trans: "A,0,B\nA,1,C\nB,0,D\nB,1,E\nC,0,B\nC,1,C\nD,0,D\nD,1,E\nE,0,B\nE,1,C"
+  },
+  ex2: {
+    name: "Simple 3-State", states: "q0,q1,q2", alphabet: "a,b", start: "q0", final: "q2",
+    trans: "q0,a,q1\nq0,b,q0\nq1,a,q2\nq1,b,q0\nq2,a,q2\nq2,b,q2"
+  },
+  ex3: {
+    name: "Unreachable States", states: "S0,S1,S2,S3,S4", alphabet: "0,1", start: "S0", final: "S2,S4",
+    trans: "S0,0,S1\nS0,1,S2\nS1,0,S2\nS1,1,S0\nS2,0,S2\nS2,1,S2\nS3,0,S4\nS3,1,S0\nS4,0,S4\nS4,1,S4"
+  }
 };
 
 var THEORY = [
-  { tag: "Foundation", title: "State Equivalence", color: "#e8646a",
-    text: "Two states are considered equivalent if, for every possible input, they lead to the same outcome — either both accept or both reject. The Myhill-Nerode theorem formalizes this: if no string can distinguish two states, they are equivalent and can be safely merged into one." },
-  { tag: "Process", title: "Table Filling Method", color: "#9f7aea",
-    text: "The Table Filling method systematically identifies distinguishable state pairs. First, all pairs where one state is final and the other is non-final are marked. Then, for each unmarked pair (p, q), we check: does any input symbol lead them to a pair already marked as distinguishable? If yes, (p, q) is marked too. This repeats until no new marks can be made." },
-  { tag: "Cleanup", title: "Unreachable State Removal", color: "#38b2ac",
-    text: "Before applying the table filling method, unreachable states are removed — those that are never encountered during execution from the start state. Since they have no impact on the accepted language, eliminating them simplifies the automaton before the main minimization begins." },
-  { tag: "Result", title: "The Minimal DFA", color: "#4299e1",
-    text: "Pairs that remain unmarked at the end are equivalent — these states are merged. The result is a minimal DFA, which is both efficient and unique (up to renaming of states). It recognizes the exact same language as the original but with the fewest states required." }
+  {
+    tag: "Foundation", title: "State Equivalence", color: "#e8646a",
+    text: "Two states are considered equivalent if, for every possible input, they lead to the same outcome — either both accept or both reject. The Myhill-Nerode theorem formalizes this: if no string can distinguish two states, they are equivalent and can be safely merged into one."
+  },
+  {
+    tag: "Process", title: "Table Filling Method", color: "#9f7aea",
+    text: "The Table Filling method systematically identifies distinguishable state pairs. First, all pairs where one state is final and the other is non-final are marked. Then, for each unmarked pair (p, q), we check: does any input symbol lead them to a pair already marked as distinguishable? If yes, (p, q) is marked too. This repeats until no new marks can be made."
+  },
+  {
+    tag: "Cleanup", title: "Unreachable State Removal", color: "#38b2ac",
+    text: "Before applying the table filling method, unreachable states are removed — those that are never encountered during execution from the start state. Since they have no impact on the accepted language, eliminating them simplifies the automaton before the main minimization begins."
+  },
+  {
+    tag: "Result", title: "The Minimal DFA", color: "#4299e1",
+    text: "Pairs that remain unmarked at the end are equivalent — these states are merged. The result is a minimal DFA, which is both efficient and unique (up to renaming of states). It recognizes the exact same language as the original but with the fewest states required."
+  }
 ];
 
 var THEORY_COLORS_NEXT = ["#9f7aea", "#38b2ac", "#4299e1", "#e8646a"];
@@ -157,10 +171,12 @@ function drawGraph(containerId, states, alphabet, transitions, startState, final
     var isFinal = finalStates.indexOf(s) !== -1;
     var color = "#8896ab";
     if (partitions) { for (var i = 0; i < partitions.length; i++) { if (partitions[i].indexOf(s) !== -1) { color = COLORS[i % COLORS.length]; break; } } }
-    return { id: s, label: s, shape: "circle", size: 28,
+    return {
+      id: s, label: s, shape: "circle", size: 28,
       color: { background: color, border: isFinal ? "#2d3748" : color, highlight: { background: color, border: "#2d3748" } },
       borderWidth: isFinal ? 3.5 : 1.5,
-      font: { color: "#fff", size: 14, face: "IBM Plex Mono, monospace", bold: true } };
+      font: { color: "#fff", size: 14, face: "IBM Plex Mono, monospace", bold: true }
+    };
   });
   nodes.push({ id: "__start__", label: "", shape: "dot", size: 0, color: { background: "transparent", border: "transparent" } });
   var edgeMap = {};
@@ -169,14 +185,17 @@ function drawGraph(containerId, states, alphabet, transitions, startState, final
   if (startState) edges.push({ from: "__start__", to: startState, arrows: "to", color: { color: "#8896ab" }, width: 2 });
   Object.values(edgeMap).forEach(function (e) {
     var rev = e.to + "->" + e.from;
-    edges.push({ from: e.from, to: e.to, label: e.labels.join(", "), arrows: "to",
+    edges.push({
+      from: e.from, to: e.to, label: e.labels.join(", "), arrows: "to",
       font: { color: "#2d3748", size: 12, face: "IBM Plex Mono", strokeWidth: 3, strokeColor: "#f7fafc", align: "top" },
       color: { color: "#8896ab", highlight: "#718096" }, width: 1.5,
-      smooth: e.from === e.to ? { type: "curvedCW", roundness: 0.6 } : edgeMap[rev] && e.from !== e.to ? { type: "curvedCW", roundness: 0.25 } : { type: "curvedCW", roundness: 0.1 } });
+      smooth: e.from === e.to ? { type: "curvedCW", roundness: 0.6 } : edgeMap[rev] && e.from !== e.to ? { type: "curvedCW", roundness: 0.25 } : { type: "curvedCW", roundness: 0.1 }
+    });
   });
   new vis.Network(container, { nodes: new vis.DataSet(nodes), edges: new vis.DataSet(edges) }, {
     physics: { enabled: true, solver: "forceAtlas2Based", forceAtlas2Based: { gravitationalConstant: -40, centralGravity: 0.008, springLength: 140, springConstant: 0.06, damping: 0.5 }, stabilization: { iterations: 200, fit: true } },
-    interaction: { dragNodes: true, dragView: true, zoomView: true }, layout: { improvedLayout: true } });
+    interaction: { dragNodes: true, dragView: true, zoomView: true }, layout: { improvedLayout: true }
+  });
 }
 
 function buildTable(states, alphabet, transitions, startState, finalStates) {
@@ -213,7 +232,7 @@ function renderSteps() {
     if (s.partitions) {
       h += '<div class="step-partitions">';
       for (var j = 0; j < s.partitions.length; j++) {
-        var bg = "linear-gradient(135deg, " + COLORS[j % COLORS.length] + ", " + COLORS[(j+1) % COLORS.length] + ")";
+        var bg = "linear-gradient(135deg, " + COLORS[j % COLORS.length] + ", " + COLORS[(j + 1) % COLORS.length] + ")";
         h += '<span class="partition-chip" style="background:' + bg + '">{' + s.partitions[j].join(", ") + '}</span>';
       }
       h += '</div>';
